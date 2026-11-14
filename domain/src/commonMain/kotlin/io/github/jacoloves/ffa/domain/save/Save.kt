@@ -46,7 +46,7 @@ interface SaveRepository {
 object SaveCodec {
 
     /** 現在のセーブ形式のバージョン。形式を変えるときに上げ、[migrate] に変換処理を足す。 */
-    const val CURRENT_SCHEMA_VERSION = 1
+    const val CURRENT_SCHEMA_VERSION = 2
 
     // ignoreUnknownKeys: 将来項目が増えたセーブも読める / encodeDefaults: 既定値の項目も保存して中身を明示する
     private val json = Json {
@@ -91,11 +91,34 @@ object SaveCodec {
         return LoadResult.Loaded(state)
     }
 
+    /** v1 時代の既定クールタイム(秒)。v2 で既定値が 90 秒になったため、この値のままのセーブを新既定へ移行する目印にする。 */
+    private const val V1_DEFAULT_COOLDOWN_SEC = 5
+
     /**
-     * 古いバージョンのセーブを現行形式へ変換する。現在は v1 のみなので恒等変換(将来のための枠組み)。
-     * 形式を変えるときは `when (fromVersion)` で段階的に(v1→v2→…)変換する。
+     * 古いバージョンのセーブを現行形式へ変換する。段階的に(v1→v2→…)変換する。
+     *
+     * v1→v2: クールタイムの既定値が 5 秒から 90 秒に変わった。
+     *   - cooldownSec が旧既定(5)のままなら、新既定(90)へ。利用者が設定を触っていない(=既定のまま)とみなすため。
+     *   - それ以外(利用者が自分で決めた値)は尊重して残す。ただし新しい範囲(1〜180)に収める。
+     *   - schemaVersion を 2 に更新する。
      */
-    fun migrate(fromVersion: Int, obj: JsonObject): JsonObject = obj
+    fun migrate(fromVersion: Int, obj: JsonObject): JsonObject {
+        var cur = obj
+        if (fromVersion < 2) cur = migrateV1ToV2(cur)
+        return cur
+    }
+
+    private fun migrateV1ToV2(obj: JsonObject): JsonObject {
+        val old = (obj["cooldownSec"] as? JsonPrimitive)?.intOrNull
+        val fields = obj.toMutableMap()
+        if (old != null) {
+            val migrated = if (old == V1_DEFAULT_COOLDOWN_SEC) Balance.DEFAULT_COOLDOWN_SEC
+            else old.coerceIn(Balance.MIN_COOLDOWN_SEC, Balance.MAX_COOLDOWN_SEC)
+            fields["cooldownSec"] = JsonPrimitive(migrated)
+        }
+        fields["schemaVersion"] = JsonPrimitive(2)
+        return JsonObject(fields)
+    }
 
     /** 意味的な妥当性の確認。問題なければ null、あれば日本語の理由。 */
     private fun validate(s: GameState): String? = when {

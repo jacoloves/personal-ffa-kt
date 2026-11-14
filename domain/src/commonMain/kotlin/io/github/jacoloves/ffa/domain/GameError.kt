@@ -16,6 +16,7 @@ import io.github.jacoloves.ffa.domain.data.GameData
 import io.github.jacoloves.ffa.domain.data.ItemId
 import io.github.jacoloves.ffa.domain.data.JobId
 import io.github.jacoloves.ffa.domain.num.formatJp
+import io.github.jacoloves.ffa.domain.num.formatRemaining
 
 /** 操作の失敗理由。 */
 sealed interface GameError {
@@ -71,8 +72,8 @@ sealed interface GameError {
     data class CooldownActive(val remainingMs: Long) : GameError {
         override val message: String
             get() {
-                val sec = (remainingMs + 999) / 1000 // 切り上げ(0.5 秒残りでも「1 秒」と表示する)
-                return "まだ戦えません。クールタイム中です(あと $sec 秒)。しばらく待ってからもう一度「戦う」を押してください。"
+                // 切り上げ(0.5 秒残りでも「1 秒」と表示)し、1 分以上は「1分25秒」の形にする
+                return "まだ戦えません。クールタイム中です(あと ${formatRemaining(remainingMs)})。しばらく待ってからもう一度「戦う」を押してください。"
             }
     }
 

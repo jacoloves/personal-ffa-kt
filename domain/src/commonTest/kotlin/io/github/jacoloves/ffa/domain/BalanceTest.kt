@@ -41,10 +41,9 @@ class BalanceTest {
         assertEquals(listOf(1.0, 5.0, 22.0, 200.0), Balance.AREA_PRICE_SCALE)
         assertEquals(0.10, Balance.ENHANCE_RATIO_PER_LEVEL)
         assertEquals(0.5, Balance.DROP_LUK_BONUS_MAX)
-        assertEquals(5, Balance.DEFAULT_COOLDOWN_SEC)
+        assertEquals(90, Balance.DEFAULT_COOLDOWN_SEC)
         assertEquals(1, Balance.MIN_COOLDOWN_SEC)
-        assertEquals(30, Balance.MAX_COOLDOWN_SEC)
-        assertEquals(2, Balance.LOSE_COOLDOWN_MULTIPLIER)
+        assertEquals(180, Balance.MAX_COOLDOWN_SEC)
     }
 
     /** 値同士の整合性(調整ミスの検出)。 */

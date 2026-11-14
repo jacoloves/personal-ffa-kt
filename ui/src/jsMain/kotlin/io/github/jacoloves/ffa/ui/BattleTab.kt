@@ -11,6 +11,7 @@ import io.github.jacoloves.ffa.domain.GameState
 import io.github.jacoloves.ffa.domain.data.AreaId
 import io.github.jacoloves.ffa.domain.data.GameData
 import io.github.jacoloves.ffa.domain.num.formatJp
+import io.github.jacoloves.ffa.domain.num.formatRemaining
 import io.github.jacoloves.ffa.domain.world.AreaRules
 import org.jetbrains.compose.web.attributes.disabled
 import org.jetbrains.compose.web.dom.Button
@@ -58,7 +59,7 @@ private fun AreaSelector(controller: GameController, state: GameState) {
                 Span({ classes(AppStyles.bannerText) }) {
                     Text(
                         "推奨Lv ${formatJp(area.recommendedLevel)} 未満です(今は Lv ${formatJp(state.charLevel)})。" +
-                            "負けるとクールタイムが2倍になります。",
+                            "負けると報酬(EXP・ゴールド・ドロップ)が何も手に入りません。",
                     )
                 }
             }
@@ -73,7 +74,6 @@ private fun DlvAndFight(controller: GameController, state: GameState) {
     val dlv = state.selectedDlv[state.currentArea] ?: 1
     val remainingMs = controller.cooldownRemainingMs()
     val coolingDown = remainingMs > 0
-    val remainingSec = (remainingMs + 999) / 1000 // 切り上げて「あと N 秒」
 
     Div({ classes(AppStyles.card) }) {
         Div({ classes(AppStyles.spaceBetween) }) {
@@ -94,7 +94,7 @@ private fun DlvAndFight(controller: GameController, state: GameState) {
             classes(AppStyles.primary, AppStyles.bigButton)
             if (coolingDown) disabled()
             onClick { controller.dispatch(Command.Fight) }
-        }) { Text(if (coolingDown) "あと $remainingSec 秒" else "戦う") }
+        }) { Text(if (coolingDown) "あと ${formatRemaining(remainingMs)}" else "戦う") }
     }
 }
 
@@ -104,7 +104,7 @@ private fun BattleResultView(report: BattleReport) {
     Div({ classes(AppStyles.card) }) {
         H2 {
             Span({ classes(if (report.won) AppStyles.win else AppStyles.lose) }) {
-                Text(if (report.won) "勝利!" else "敗北…(報酬なし・クールタイム2倍)")
+                Text(if (report.won) "勝利!" else "敗北…(報酬なし)")
             }
         }
         Div({ classes(AppStyles.log); attr("aria-live", "polite") }) {

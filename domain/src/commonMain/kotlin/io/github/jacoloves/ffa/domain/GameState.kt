@@ -40,7 +40,7 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 data class GameState(
-    val schemaVersion: Int = 1,
+    val schemaVersion: Int = 2,
     val playerName: String,
     val charLevel: Long = 1,
     val charExp: Long = 0,

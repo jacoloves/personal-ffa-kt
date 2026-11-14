@@ -79,8 +79,8 @@ object Balance {
     const val ENHANCE_RATIO_PER_LEVEL = 0.10 // +1ごとに基礎値の +10%
     const val DROP_LUK_BONUS_MAX = 0.5       // ドロップ率 × (1 + 0.5 × pLuk/(pLuk+eLuk))
     // クールタイム
-    const val DEFAULT_COOLDOWN_SEC = 5; const val MIN_COOLDOWN_SEC = 1; const val MAX_COOLDOWN_SEC = 30
-    const val LOSE_COOLDOWN_MULTIPLIER = 2
+    const val DEFAULT_COOLDOWN_SEC = 90; const val MIN_COOLDOWN_SEC = 1; const val MAX_COOLDOWN_SEC = 180
+    // 敗北時の倍化(LOSE_COOLDOWN_MULTIPLIER)は廃止。勝敗とも同じクールタイム
 }
 ```
 
@@ -187,7 +187,7 @@ data class ItemDef(val id: ItemId, val name: String, val slot: Slot, val stats: 
 
 ```kotlin
 @Serializable data class GameState(
-  val schemaVersion: Int = 1,
+  val schemaVersion: Int = 2,
   val playerName: String,
   val charLevel: Long = 1, val charExp: Long = 0,
   val currentJob: JobId = JobId.WARRIOR,
@@ -220,7 +220,7 @@ sealed interface GameEvent // BattleFinished(outcome, logLines), CharLevelUp(fro
 1. `clock.now < nextBattleAt` なら `CooldownActive` を返す
 2. 敵を抽選して生成し、プレイヤーの Combatant（StatCalculator の結果）と戦闘させる
 3. **勝利**: キャラEXP・職業EXP・ゴールドを加算 → Lvアップ処理 → ドロップ判定 → `maxClearedDlv` を更新 → 新しく解放されたエリアがあれば `AreaUnlocked` / 職業があれば `JobUnlocked` → `nextBattleAt = now + cooldown`
-4. **敗北**: 報酬はなし → `nextBattleAt = now + cooldown × 2`
+4. **敗北**: 報酬はなし → `nextBattleAt = now + cooldown`（勝利と同じ。倍化はしない）
 5. どちらの場合も `records` を更新する
 - **DLv**: 選べる範囲は `1..(maxClearedDlv[area] + 1)`（何も倒していなければ `1..1`）
 - **エリア解放**: `AreaUnlock(area, dlv)` について、`maxClearedDlv[area] >= dlv` を満たすこと
@@ -228,7 +228,7 @@ sealed interface GameEvent // BattleFinished(outcome, logLines), CharLevelUp(fro
 ### セーブ（`kotlinx-serialization-json`）
 - domain には `interface SaveRepository { fun load(): LoadResult; fun save(state: GameState) }` と、`SaveCodec`（`encode(state): String` / `decode(json): LoadResult`）を置く
 - `LoadResult`: `Loaded(state)` / `NotFound` / `Corrupted(reason: String, raw: String)`
-- `decode` はまず `schemaVersion` だけを読み、`migrate(fromVersion, json)` を通してからデコードする（今はv1だけなので恒等変換。将来に備えた枠組み）
+- `decode` はまず `schemaVersion` だけを読み、`migrate(fromVersion, json)` を通してからデコードする（v1→v2: 既定クールタイムが 5 秒から 90 秒に変わったため、`cooldownSec` が旧既定の 5 なら 90 に置き換え、それ以外のカスタム値は 1〜180 に収めて維持する。未知の/新しすぎるバージョンは Corrupted）
 - `Json { ignoreUnknownKeys = true; encodeDefaults = true }`
 - localStorage への実装は ui 側に置く（Phase 7）。domain では文字列の往復（ラウンドトリップ）と、壊れたJSONの扱いをテストする
 
