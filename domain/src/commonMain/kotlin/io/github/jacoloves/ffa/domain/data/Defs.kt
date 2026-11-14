@@ -6,7 +6,10 @@
 package io.github.jacoloves.ffa.domain.data
 
 import io.github.jacoloves.ffa.domain.StatRatios
+import io.github.jacoloves.ffa.domain.Balance
 import io.github.jacoloves.ffa.domain.Stats
+import io.github.jacoloves.ffa.domain.num.SatMath
+import kotlin.math.roundToLong
 
 /**
  * 敵 1 種類の定義。DLv による強化前の「基礎値」を持つ。
@@ -80,3 +83,42 @@ data class JobDef(
  * @property mastered マスター済みか(一度 true になったら戻らない)
  */
 data class JobProgress(val level: Int = 1, val exp: Long = 0, val mastered: Boolean = false)
+
+/**
+ * 装備アイテムの定義。固定性能(+0 のときの値)を持ち、強化値(+N)で伸びる。
+ *
+ * @property stats 強化値 +0 のときのステータス
+ * @property price ショップでの価格。null は非売品(ドロップ限定)
+ * @property shopArea 売っているエリア(解放されているエリアでだけ買える)。非売品は null
+ */
+data class ItemDef(
+    val id: ItemId,
+    val name: String,
+    val slot: Slot,
+    val stats: Stats,
+    val price: Long?,
+    val shopArea: AreaId?,
+) {
+    /**
+     * 強化値 [enhance] のときのステータス = `stats × (1 + 0.1 × enhance)`(切り捨て)。
+     *
+     * 倍率を浮動小数点でかけると 3.9999... のような誤差で 1 ずれることがあるため、
+     * 千分率の整数(1000 + 100 × enhance)で掛けて 1000 で割る。巨大値で飽和する場合のみ Double に切り替える。
+     */
+    fun statsAt(enhance: Int): Stats {
+        require(enhance >= 0) {
+            "強化値に $enhance が指定されました。強化値は 0 以上です。セーブデータの所持品が壊れていないか確認してください。"
+        }
+        val perMille = (Balance.ENHANCE_RATIO_PER_LEVEL * 1000).roundToLong() // 0.10 → 100
+        val numerator = 1000L + perMille * enhance
+        fun scale(v: Long): Long {
+            val product = SatMath.mul(v, numerator)
+            return if (product == Long.MAX_VALUE || product == Long.MIN_VALUE) {
+                SatMath.mulRatio(v, numerator / 1000.0) // 飽和したときだけ近似にフォールバック
+            } else {
+                product / 1000
+            }
+        }
+        return Stats(scale(stats.hp), scale(stats.atk), scale(stats.def), scale(stats.spd), scale(stats.luk))
+    }
+}

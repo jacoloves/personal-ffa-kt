@@ -26,3 +26,6 @@ enum class EnemyId {
 
 /** 職業の識別子。Tier1 の 4 職と、それをマスターして解放される Tier2 の 2 職。 */
 enum class JobId { WARRIOR, KNIGHT, THIEF, PRIEST, SWORD_MASTER, PALADIN }
+
+/** 装備枠。 */
+enum class Slot { WEAPON, ARMOR, ACCESSORY }
