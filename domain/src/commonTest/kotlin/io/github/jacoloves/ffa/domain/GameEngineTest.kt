@@ -63,7 +63,7 @@ class GameEngineTest {
         // 記録
         assertEquals(Records(battles = 1, wins = 1, totalGold = slime.gold, maxCharLevel = 50), r.state.records)
         // 勝利のクールタイム = 現在時刻 + cooldownSec
-        assertEquals(1_000L + 5_000L, r.state.nextBattleAt)
+        assertEquals(1_000L + 90_000L, r.state.nextBattleAt)
     }
 
     /** 元の状態は変更されない(不変)。 */
@@ -110,7 +110,7 @@ class GameEngineTest {
     )
 
     @Test
-    fun 敗北すると報酬なしでクールタイムが2倍() {
+    fun 敗北すると報酬なしでクールタイムは勝利と同じ() {
         now = 2_000
         val s = losingState()
         val r = ok(run(s, Command.Fight))
@@ -122,8 +122,8 @@ class GameEngineTest {
         assertEquals(s.jobs, r.state.jobs)
         assertEquals(s.maxClearedDlv, r.state.maxClearedDlv)
         assertEquals(Records(battles = 1, wins = 0, totalGold = 0, maxCharLevel = 1), r.state.records)
-        // 敗北のクールタイム = 現在時刻 + cooldownSec × 2
-        assertEquals(2_000L + 10_000L, r.state.nextBattleAt)
+        // 敗北のクールタイム = 現在時刻 + cooldownSec(倍化しない)
+        assertEquals(2_000L + 90_000L, r.state.nextBattleAt)
     }
 
     // ---------- Fight: レベルアップ・職業 ----------
@@ -294,9 +294,9 @@ class GameEngineTest {
     @Test
     fun クールタイム設定の範囲() {
         assertEquals(1, ok(run(newState(), Command.SetCooldown(1))).state.cooldownSec)
-        assertEquals(30, ok(run(newState(), Command.SetCooldown(30))).state.cooldownSec)
+        assertEquals(180, ok(run(newState(), Command.SetCooldown(180))).state.cooldownSec)
         assertEquals(GameError.InvalidCooldown(0), err(run(newState(), Command.SetCooldown(0))))
-        assertEquals(GameError.InvalidCooldown(31), err(run(newState(), Command.SetCooldown(31))))
+        assertEquals(GameError.InvalidCooldown(181), err(run(newState(), Command.SetCooldown(181))))
     }
 
     /** 失敗したコマンドは、クールタイム中でも設定系は影響を受けない(戦闘以外はクールタイム無関係)。 */

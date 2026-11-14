@@ -74,9 +74,9 @@ object Balance {
     const val DROP_LUK_BONUS_MAX = 0.5
 
     // ---------- クールタイム(秒) ----------
-    const val DEFAULT_COOLDOWN_SEC = 5
+    // 勝っても負けても同じクールタイム(敗北の倍化は廃止。負けは「報酬なし」だけで十分な罰になるため)。
+    /** 初期値。1 戦ごとに 90 秒待つ、放置寄りのテンポ。 */
+    const val DEFAULT_COOLDOWN_SEC = 90
     const val MIN_COOLDOWN_SEC = 1
-    const val MAX_COOLDOWN_SEC = 30
-    /** 敗北時はクールタイムをこの倍数にする。 */
-    const val LOSE_COOLDOWN_MULTIPLIER = 2
+    const val MAX_COOLDOWN_SEC = 180
 }

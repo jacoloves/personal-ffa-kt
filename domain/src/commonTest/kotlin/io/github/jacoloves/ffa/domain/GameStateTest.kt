@@ -21,7 +21,7 @@ class GameStateTest {
     @Test
     fun 初期状態() {
         val s = newState()
-        assertEquals(1, s.schemaVersion)
+        assertEquals(2, s.schemaVersion)
         assertEquals("勇者", s.playerName)
         assertEquals(1L, s.charLevel)
         assertEquals(0L, s.charExp)
@@ -80,7 +80,9 @@ class GameStateTest {
         )
         for (e in errors) assertTrue(e.message.length > 10, "$e")
         // クールタイムは残り秒を切り上げて表示する
-        assertTrue(GameError.CooldownActive(1_500).message.contains("2 秒"))
+        assertTrue(GameError.CooldownActive(1_500).message.contains("2秒"))
+        assertTrue(GameError.CooldownActive(85_000).message.contains("1分25秒"))
+        assertTrue(GameError.InvalidCooldown(181).message.contains("1〜180"))
         assertTrue(GameError.DlvOutOfRange(5, 3).message.contains("5") && GameError.DlvOutOfRange(5, 3).message.contains("3"))
     }
 }

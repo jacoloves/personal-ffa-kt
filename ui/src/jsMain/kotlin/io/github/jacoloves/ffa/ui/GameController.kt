@@ -157,6 +157,11 @@ class GameController(
         tab = Tab.BATTLE
     }
 
+    /** 画面側で見つけた入力エラーを、エラーのお知らせとして表示する。 */
+    fun showError(message: String) {
+        banner = Banner(message, BannerKind.ERROR)
+    }
+
     /** お知らせを閉じる。 */
     fun dismissBanner() {
         banner = null

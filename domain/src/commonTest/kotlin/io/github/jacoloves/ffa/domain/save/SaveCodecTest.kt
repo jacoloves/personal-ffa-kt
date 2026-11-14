@@ -98,13 +98,14 @@ class SaveCodecTest {
     @Test
     fun 未来のバージョン() {
         assertCorrupted("{\"schemaVersion\":99}", "99", "新しい")
+        assertCorrupted("{\"schemaVersion\":3}", "3", "新しい") // 現行(2)より 1 つ新しいだけでも読まない
         assertCorrupted("{\"schemaVersion\":0}", "0")
     }
 
     /** バージョンは正しいが項目が足りない / 型が違う / 未知の enum 値。 */
     @Test
     fun 項目の欠落や不正な値() {
-        assertCorrupted("{\"schemaVersion\":1}", "読み取れません")
+        assertCorrupted("{\"schemaVersion\":2}", "読み取れません")
         val good = SaveCodec.encode(newState())
         assertCorrupted(good.replace("\"MEADOW\"", "\"ATLANTIS\""), "読み取れません")
         assertCorrupted(good.replace("\"charLevel\":1", "\"charLevel\":\"x\""), "読み取れません")
@@ -115,19 +116,49 @@ class SaveCodecTest {
     fun 意味的に不正な値() {
         val raw = SaveCodec.encode(newState().copy(charLevel = 0))
         assertCorrupted(raw, "キャラレベル")
-        assertCorrupted(SaveCodec.encode(newState().copy(cooldownSec = 99)), "クールタイム")
+        assertCorrupted(SaveCodec.encode(newState().copy(cooldownSec = 181)), "クールタイム")
         assertCorrupted(SaveCodec.encode(newState().copy(playerName = " ")), "名前")
     }
 
     // ---------- migrate ----------
 
-    /** v1 の migrate は恒等変換(将来の移行のための枠組み)。 */
+    /** v2 のセーブは migrate で変わらない(現行形式)。 */
     @Test
-    fun migrateはv1で恒等() {
-        val obj: JsonObject = buildJsonObject { put("schemaVersion", 1); put("x", JsonPrimitive("y")) }
-        assertEquals(obj, SaveCodec.migrate(1, obj))
-        assertEquals(1, SaveCodec.CURRENT_SCHEMA_VERSION)
+    fun migrateはv2で恒等() {
+        val obj: JsonObject = buildJsonObject { put("schemaVersion", 2); put("cooldownSec", 5) }
+        assertEquals(obj, SaveCodec.migrate(2, obj))
+        assertEquals(2, SaveCodec.CURRENT_SCHEMA_VERSION)
         assertEquals(SaveCodec.CURRENT_SCHEMA_VERSION, newState().schemaVersion)
+    }
+
+    /** 現行セーブを v1 形式(schemaVersion=1, cooldownSec 指定)に書き換えた JSON を作る。 */
+    private fun v1Json(cooldownSec: Int): String =
+        SaveCodec.encode(newState().copy(cooldownSec = cooldownSec))
+            .replace("\"schemaVersion\":2", "\"schemaVersion\":1")
+
+    /** v1→v2: 旧既定の 5 秒は新既定の 90 秒へ。バージョンも 2 になる。 */
+    @Test
+    fun v1の旧既定クールタイムは90秒に移行される() {
+        val loaded = SaveCodec.decode(v1Json(5)) as LoadResult.Loaded
+        assertEquals(90, loaded.state.cooldownSec)
+        assertEquals(2, loaded.state.schemaVersion)
+    }
+
+    /** v1→v2: 利用者が決めた値(12 秒)はそのまま残す。 */
+    @Test
+    fun v1のカスタムクールタイムは維持される() {
+        val loaded = SaveCodec.decode(v1Json(12)) as LoadResult.Loaded
+        assertEquals(12, loaded.state.cooldownSec)
+        assertEquals(2, loaded.state.schemaVersion)
+    }
+
+    /** v1→v2: 範囲外の値は 1〜180 に収める(migrate 単体)。 */
+    @Test
+    fun migrateは範囲外を収める() {
+        val low = buildJsonObject { put("schemaVersion", 1); put("cooldownSec", 0) }
+        val high = buildJsonObject { put("schemaVersion", 1); put("cooldownSec", 999) }
+        assertEquals(JsonPrimitive(1), SaveCodec.migrate(1, low)["cooldownSec"])
+        assertEquals(JsonPrimitive(180), SaveCodec.migrate(1, high)["cooldownSec"])
     }
 
     // ---------- SaveRepository ----------

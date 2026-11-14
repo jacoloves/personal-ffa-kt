@@ -85,10 +85,10 @@ object GameEngine {
         val cooldownMs = state.cooldownSec * 1000L
         val battles = state.records.battles + 1
 
-        // 4. 敗北(タイムアウトを含む): 報酬なし、クールタイム × 2
+        // 4. 敗北(タイムアウトを含む): 報酬なし。クールタイムは勝利と同じ
         if (!outcome.playerWon) {
             val next = state.copy(
-                nextBattleAt = now + cooldownMs * Balance.LOSE_COOLDOWN_MULTIPLIER,
+                nextBattleAt = now + cooldownMs,
                 records = state.records.copy(battles = battles),
             )
             return CommandResult.Success(next, events)
