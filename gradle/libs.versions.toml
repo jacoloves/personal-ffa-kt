@@ -10,6 +10,7 @@
 [versions]
 kotlin = "2.4.21"          # Kotlin 本体(Multiplatform プラグイン・kotlin-test もこの版)
 compose = "1.12.2"         # Compose Multiplatform
+kotlinx-serialization = "1.13.0" # kotlinx-serialization-json(セーブデータの JSON 化。Kotlin 2.4.21 でビルド確認済み)
 
 [libraries]
 # kotlin-test は Kotlin 本体と同じバージョンに揃える(version.ref = "kotlin")。
@@ -20,9 +21,14 @@ kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotl
 compose-runtime = { module = "org.jetbrains.compose.runtime:runtime", version.ref = "compose" }
 compose-html-core = { module = "org.jetbrains.compose.html:html-core", version.ref = "compose" }
 
+# セーブデータ(GameState)の JSON 変換に使う。実行時ライブラリとコンパイラプラグインは別物なので両方必要。
+kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
+
 [plugins]
 kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 # Kotlin 2.0 以降、Compose のコンパイラは Kotlin 本体に同梱され、
 # このプラグイン(org.jetbrains.kotlin.plugin.compose)経由で有効化する。
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+# @Serializable を処理するコンパイラプラグイン。Kotlin 本体と同じバージョンに揃える。
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 compose = { id = "org.jetbrains.compose", version.ref = "compose" }

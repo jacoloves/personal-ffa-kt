@@ -66,6 +66,35 @@ sealed interface GameError {
             get() = "「${GameData.item(item).name}」はショップでは売っていません(ドロップ限定品です)。" +
                 "敵を倒してドロップで入手してください。"
     }
+
+    /** クールタイム中に戦おうとした。[remainingMs] は残りミリ秒。 */
+    data class CooldownActive(val remainingMs: Long) : GameError {
+        override val message: String
+            get() {
+                val sec = (remainingMs + 999) / 1000 // 切り上げ(0.5 秒残りでも「1 秒」と表示する)
+                return "まだ戦えません。クールタイム中です(あと $sec 秒)。しばらく待ってからもう一度「戦う」を押してください。"
+            }
+    }
+
+    /** 選べる範囲外の DLv を指定した。選べるのは 1 〜 [max]。 */
+    data class DlvOutOfRange(val dlv: Int, val max: Int) : GameError {
+        override val message: String
+            get() = "DLv $dlv は選べません。このエリアで選べる DLv は 1 〜 $max です。" +
+                "上の DLv は、今の最高 DLv をクリアすると選べるようになります。範囲内の DLv を選んでください。"
+    }
+
+    /** クールタイムの設定値が範囲外。 */
+    data class InvalidCooldown(val sec: Int) : GameError {
+        override val message: String
+            get() = "クールタイム $sec 秒は設定できません。設定できるのは ${Balance.MIN_COOLDOWN_SEC}〜${Balance.MAX_COOLDOWN_SEC} 秒です。" +
+                "この範囲内の秒数を指定してください。"
+    }
+
+    /** プレイヤー名が空(空白のみを含む)。 */
+    data object InvalidName : GameError {
+        override val message: String =
+            "名前が入力されていません。名前が空、または空白だけでは始められません。1 文字以上の名前を入力してください。"
+    }
 }
 
 /**

@@ -9,5 +9,6 @@
 plugins {
     alias(libs.plugins.kotlin.multiplatform) apply false // Kotlin Multiplatform 本体
     alias(libs.plugins.kotlin.compose) apply false       // Kotlin 2.x 用 Compose コンパイラプラグイン
+    alias(libs.plugins.kotlin.serialization) apply false // @Serializable 用コンパイラプラグイン
     alias(libs.plugins.compose) apply false              // Compose Multiplatform (JetBrains)
 }

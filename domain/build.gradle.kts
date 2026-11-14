@@ -6,6 +6,8 @@
 plugins {
     // Kotlin Multiplatform。将来 JVM 等へ広げる余地を残しつつ、今は JS のみ。
     alias(libs.plugins.kotlin.multiplatform)
+    // GameState 等の @Serializable を処理する(セーブデータの JSON 化に使う)。
+    alias(libs.plugins.kotlin.serialization)
 }
 
 kotlin {
@@ -19,9 +21,12 @@ kotlin {
     }
 
     sourceSets {
-        // commonMain は依存ライブラリなし(Phase 1 では何も追加しない方針)。
+        // commonMain の依存は kotlinx-serialization-json のみ(セーブの JSON 化)。
+        // GameState が公開 API で @Serializable を使うため、利用側(ui)にも見えるよう api にする。
         commonMain {
-            // 依存なし
+            dependencies {
+                api(libs.kotlinx.serialization.json)
+            }
         }
         // commonTest: 全ターゲット共通のテスト。kotlin-test が JS 用アダプタを自動解決する。
         commonTest {
