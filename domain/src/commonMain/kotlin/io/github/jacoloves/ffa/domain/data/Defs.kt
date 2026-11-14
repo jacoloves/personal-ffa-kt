@@ -43,6 +43,7 @@ data class DropEntry(val item: ItemId, val chance: Double)
  * エリアの定義。
  *
  * @property tier 難易度の段階(1〜4)。Phase 4 で職業 EXP の獲得量に使う
+ * @property recommendedLevel 推奨キャラLv。下回ると負けやすい目安で、UI が警告表示に使う
  * @property enemies このエリアに出現する敵(順序は表示・抽選の順)
  * @property unlock 解放条件。null は最初から解放されている
  */
@@ -50,6 +51,7 @@ data class AreaDef(
     val id: AreaId,
     val name: String,
     val tier: Int,
+    val recommendedLevel: Long,
     val enemies: List<EnemyId>,
     val unlock: AreaUnlock?,
 )

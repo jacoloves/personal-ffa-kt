@@ -106,12 +106,12 @@ object GameData {
     /** すべてのエリアの定義(id → 定義)。解放条件は「1 つ前のエリアで DLv 10」。 */
     val areas: Map<AreaId, AreaDef> = listOf(
         AreaDef(
-            AreaId.MEADOW, "はじまりの草原", tier = 1,
+            AreaId.MEADOW, "はじまりの草原", recommendedLevel = 1, tier = 1,
             enemies = listOf(EnemyId.SLIME, EnemyId.GIANT_RAT, EnemyId.HORNED_RABBIT, EnemyId.GOBLIN, EnemyId.WILD_DOG),
             unlock = null,
         ),
         AreaDef(
-            AreaId.FOREST, "迷いの森", tier = 2,
+            AreaId.FOREST, "迷いの森", recommendedLevel = 30, tier = 2,
             enemies = listOf(
                 EnemyId.WOOD_WOLF, EnemyId.POISON_MUSHROOM, EnemyId.FOREST_GOBLIN_CHIEF,
                 EnemyId.TREANT, EnemyId.FAIRY_PRANKSTER,
@@ -119,14 +119,14 @@ object GameData {
             unlock = AreaUnlock(AreaId.MEADOW, Balance.AREA_UNLOCK_DLV),
         ),
         AreaDef(
-            AreaId.CAVE, "地底洞窟", tier = 3,
+            AreaId.CAVE, "地底洞窟", recommendedLevel = 100, tier = 3,
             enemies = listOf(
                 EnemyId.GIANT_BAT, EnemyId.GOLEM, EnemyId.CAVE_LIZARD, EnemyId.SKELETON, EnemyId.CAVE_OGRE,
             ),
             unlock = AreaUnlock(AreaId.FOREST, Balance.AREA_UNLOCK_DLV),
         ),
         AreaDef(
-            AreaId.VOLCANO, "灼熱の火山", tier = 4,
+            AreaId.VOLCANO, "灼熱の火山", recommendedLevel = 300, tier = 4,
             enemies = listOf(
                 EnemyId.FIRE_LIZARD, EnemyId.LAVA_SLIME, EnemyId.FLAME_BEAST,
                 EnemyId.FIRE_ELEMENTAL, EnemyId.YOUNG_DRAGON,

@@ -111,4 +111,21 @@ class GameDataTest {
             assertTrue(s.atk in 5..12, "$id atk=${s.atk}")
         }
     }
+
+    /** 推奨キャラLv が仕様どおり(草原1・森30・洞窟100・火山300)であること。 */
+    @Test
+    fun 推奨レベルが仕様どおり() {
+        assertEquals(1L, GameData.area(AreaId.MEADOW).recommendedLevel)
+        assertEquals(30L, GameData.area(AreaId.FOREST).recommendedLevel)
+        assertEquals(100L, GameData.area(AreaId.CAVE).recommendedLevel)
+        assertEquals(300L, GameData.area(AreaId.VOLCANO).recommendedLevel)
+    }
+
+    /** 推奨Lv は後のエリアほど大きい(単調増加)こと。UI の警告の前提。 */
+    @Test
+    fun 推奨レベルはエリアが進むほど大きい() {
+        val levels = AreaId.entries.map { GameData.area(it).recommendedLevel }
+        assertEquals(levels.sorted(), levels)
+        assertEquals(levels.size, levels.toSet().size)
+    }
 }
