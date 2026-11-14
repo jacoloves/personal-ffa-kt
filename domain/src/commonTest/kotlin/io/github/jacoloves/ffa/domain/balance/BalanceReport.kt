@@ -62,4 +62,17 @@ object BalanceReport {
             appendLine("| ${def.name}(${def.price}G)を稼ぎ切るまで | ${v.medianOrNull() ?: "-"}戦 | ${v.size}/${reports.size} |")
         }
     }
+
+    /** エンドレス区間(火山突入後)の 100 戦ごとのキャラLv増加と火山DLv増加(seed の中央値)。 */
+    fun endlessTable(reports: List<SimReport>): String = buildString {
+        val all = reports.map { it.endlessWindows() }
+        val n = all.minOfOrNull { it.size } ?: 0
+        appendLine("| 窓(火山突入後) | Lv増加/100戦(中央値) | 火山DLv増加/100戦(中央値) | 窓終了時のLv(中央値) |")
+        appendLine("|---|---|---|---|")
+        for (k in 0 until n) {
+            val gains = all.map { it[k].levelGain }
+            val dlvs = all.map { it[k].dlvGain }
+            appendLine("| ${k * 100 + 1}〜${(k + 1) * 100} 戦 | ${gains.medianOrNull()} | ${dlvs.medianOrNull()} | - |")
+        }
+    }
 }

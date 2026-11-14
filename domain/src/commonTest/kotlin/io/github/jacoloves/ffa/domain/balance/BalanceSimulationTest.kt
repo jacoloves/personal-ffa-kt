@@ -7,7 +7,7 @@
 // 判定の方針:
 //   - seed は固定(1〜8)なので結果は毎回同じ。ただし数値を調整すれば結果は動くため、
 //     目標は「幅」(許容範囲)で持ち、中央値・平均で判定する。
-//   - 実行時間はおよそ数秒(8 seed × 約 2,500 戦 + 勝率の測定)。
+//   - 実行時間はおよそ数秒(8 seed × 約 3,900 戦 + 勝率の測定。火山突入後 1,500 戦まで回す)。
 //   - 目標値と実測値は describe/domain-design.md の「バランス調整結果」にも書いてある。
 // =============================================================================
 package io.github.jacoloves.ffa.domain.balance
@@ -26,7 +26,7 @@ class BalanceSimulationTest {
     companion object {
         /** シミュレーション結果(全テストで共有。最初に使われたときに 1 度だけ計算する)。 */
         val reports: List<SimReport> by lazy {
-            (1..8).map { BalanceSimulator(it).run(maxFights = 6_000, stopAfterEnteringVolcano = 400, probeTrials = 300) }
+            (1..8).map { BalanceSimulator(it).run(maxFights = 6_000, stopAfterEnteringVolcano = 1_500, probeTrials = 300) }
         }
     }
 
@@ -73,6 +73,36 @@ class BalanceSimulationTest {
         }
     }
 
+    /** 目標 4b: 洞窟に入った直後の DLv1 勝率は 75〜92%(簡単すぎず、勝てないほど難しくもない)。 */
+    @Test
+    fun 洞窟の突入直後の勝率が適度() {
+        val rate = assertNotNull(reports.mapNotNull { it.entryWinRate[AreaId.CAVE] }.meanOrNull(), "洞窟に入った seed がありません")
+        assertTrue(rate in 0.75..0.92, "洞窟の突入直後の DLv1 勝率が ${fmt1(rate * 100)}% です(目標 75〜92%)。洞窟の敵倍率(AREA_STAT_SCALE[2])を調整してください。")
+    }
+
+    /**
+     * 目標 8(エンドレス区間): 火山へ入ったあとの 1,500 戦、成長が止まらない。
+     *   - 100 戦あたりのキャラLv増加が、どの窓でも(seed の中央値で)5 以上
+     *   - どの窓も、最初の窓の半分未満には落ちない(プラトーがない)
+     *   - 300 戦ごとに、火山の最高 DLv が(seed の中央値で)1 以上上がり続ける
+     */
+    @Test
+    fun 火山突入後の成長が止まらない() {
+        val all = reports.map { it.endlessWindows() }
+        val windows = all.minOf { it.size }
+        assertTrue(windows >= 14, "火山突入後の計測が $windows 窓(100 戦ずつ)しかありません(目標 14 窓以上)。シミュレーションの長さを確認してください。")
+        val levelGains = (0 until windows).map { k -> all.map { it[k].levelGain }.medianOrNull()!! }
+        for ((k, g) in levelGains.withIndex()) {
+            assertTrue(g >= 5, "火山突入後 ${k * 100 + 1}〜${(k + 1) * 100} 戦の Lv増加が $g です(目標 100 戦あたり 5 以上)。火山の報酬倍率や DLv の伸びを見直してください。")
+            assertTrue(g * 2 >= levelGains.first(), "火山突入後 ${k * 100 + 1}〜${(k + 1) * 100} 戦の Lv増加 $g が、最初の窓(${levelGains.first()})の半分未満です(成長が失速しています)。")
+        }
+        for (block in 0 until windows / 3) {
+            val gains = all.map { w -> (0 until 3).sumOf { w[block * 3 + it].dlvGain } }
+            val m = gains.medianOrNull()!!
+            assertTrue(m >= 1, "火山突入後 ${block * 300 + 1}〜${(block + 1) * 300} 戦で、火山の最高 DLv が上がっていません(中央値 $m)。DLV_REWARD_GROWTH と DLV_ENEMY_GROWTH の差を見直してください。")
+        }
+    }
+
     /** 目標 5: Tier1 の 4 職は、火山の解放までにすべてマスターできる(上位職も含めて報告する)。 */
     @Test
     fun 下位職は火山解放までにすべてマスターできる() {
@@ -116,6 +146,6 @@ class BalanceSimulationTest {
     /** 設計書に貼る結果表を標準出力に出す(判定はしない。`./gradlew :domain:jsNodeTest -i` で見られる)。 */
     @Test
     fun 結果表を出力する() {
-        println("バランス調整結果(seed 1〜8、中央値/平均)\n" + BalanceReport.areaTable(reports) + "\n" + BalanceReport.jobAndShopTable(reports))
+        println("バランス調整結果(seed 1〜8、中央値/平均)\n" + BalanceReport.areaTable(reports) + "\n" + BalanceReport.jobAndShopTable(reports) + "\n" + BalanceReport.endlessTable(reports))
     }
 }

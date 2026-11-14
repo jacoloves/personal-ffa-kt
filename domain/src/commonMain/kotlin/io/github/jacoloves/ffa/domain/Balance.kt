@@ -59,9 +59,9 @@ object Balance {
     // GameData の敵・装備は「草原と同じ桁の基礎値」で書き、ここの倍率をエリアの tier に応じてかける。
     // 数値調整はこの表だけで済む(シミュレーター BalanceSimulationTest で確認する)。
     /** 敵ステータス(HP・攻撃・防御・素早さ・運)の倍率。 */
-    val AREA_STAT_SCALE: List<Double> = listOf(1.0, 4.0, 18.0, 65.0)
+    val AREA_STAT_SCALE: List<Double> = listOf(1.0, 4.0, 21.0, 75.0)
     /** 敵の EXP・ゴールドの倍率。 */
-    val AREA_REWARD_SCALE: List<Double> = listOf(1.0, 1.5, 3.5, 20.0)
+    val AREA_REWARD_SCALE: List<Double> = listOf(1.0, 1.5, 3.5, 27.0)
     /** 装備の性能の倍率(敵の強さに装備が見合うようにする)。 */
     val AREA_GEAR_SCALE: List<Double> = listOf(1.0, 4.5, 14.0, 80.0)
     /** ショップの価格の倍率。各エリアの装備が「そのエリアで 40〜120 戦」稼げば買える水準(EXP・ゴールド倍率の数倍)。 */

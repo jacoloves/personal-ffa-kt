@@ -44,6 +44,9 @@ class FakeClock(var now: Long = 0L) : Clock {
     override fun nowMillis(): Long = now
 }
 
+/** エンドレス区間の 1 窓(100 戦)あたりの伸び。 */
+data class EndlessWindow(val levelGain: Long, val dlvGain: Int)
+
 /** 1 回のシミュレーション(1 seed 分)で集めた計測値。戦闘番号はすべて「通算の何戦目か」(1 始まり)。 */
 class SimReport(val seed: Int) {
     /** エリアが解放された戦闘番号。 */
@@ -78,9 +81,33 @@ class SimReport(val seed: Int) {
     val dropOnlyByArea = mutableMapOf<AreaId, Int>()
     /** エリアに滞在した戦闘数(エリアを離れる/シミュレーション終了まで)。 */
     val stayFights = mutableMapOf<AreaId, Int>()
+    /** 戦闘ごとのキャラLv の推移(index = 戦闘番号 − 1)。エンドレス区間の伸びの計測に使う。 */
+    val levelTrace = mutableListOf<Long>()
+    /** 戦闘ごとの「火山で到達した最高 DLv」の推移(未到達は 0)。 */
+    val volcanoDlvTrace = mutableListOf<Int>()
     var totalFights = 0
     var finalLevel = 1L
     var finalGold = 0L
+
+    /**
+     * 火山へ突入してからを [windowSize] 戦ごとの窓に区切り、各窓での「キャラLv の増加」と「火山の最高 DLv の増加」を返す。
+     * 最後の端数(窓に満たない戦闘)は含めない。火山へ入っていなければ空。
+     * 「成長が止まっていないか(プラトーがないか)」を見るためのエンドレス区間の指標。
+     */
+    fun endlessWindows(windowSize: Int = 100): List<EndlessWindow> {
+        val entry = entryFight[AreaId.VOLCANO] ?: return emptyList()
+        val result = mutableListOf<EndlessWindow>()
+        var start = entry // 戦闘番号 start の直後から数える(start 戦目終了時点を基準にする)
+        while (start + windowSize <= levelTrace.size) {
+            val end = start + windowSize
+            result += EndlessWindow(
+                levelGain = levelTrace[end - 1] - levelTrace[start - 1],
+                dlvGain = volcanoDlvTrace[end - 1] - volcanoDlvTrace[start - 1],
+            )
+            start = end
+        }
+        return result
+    }
 
     /** あるエリアでの実戦の勝率(戦っていなければ null)。 */
     fun winRate(area: AreaId): Double? {
@@ -135,6 +162,8 @@ class BalanceSimulator(private val seed: Int) {
         check(result is CommandResult.Success) { "戦闘に失敗しました: $result(状態: $before)" }
         state = result.state
         report.totalFights = n
+        report.levelTrace += state.charLevel
+        report.volcanoDlvTrace += state.maxClearedDlv[AreaId.VOLCANO] ?: 0
         report.stayFights[area] = (report.stayFights[area] ?: 0) + 1
         report.fights[area] = (report.fights[area] ?: 0) + 1
         val won = state.records.wins > before.records.wins

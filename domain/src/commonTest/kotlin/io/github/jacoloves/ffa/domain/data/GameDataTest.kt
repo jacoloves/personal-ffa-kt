@@ -112,13 +112,13 @@ class GameDataTest {
         }
     }
 
-    /** 推奨キャラLv がシミュレーション(BalanceSimulationTest)で測った実態どおり(草原1・森10・洞窟25・火山52)であること。 */
+    /** 推奨キャラLv がシミュレーション(BalanceSimulationTest)で測った実態どおり(草原1・森10・洞窟25・火山56)であること。 */
     @Test
     fun 推奨レベルが仕様どおり() {
         assertEquals(1L, GameData.area(AreaId.MEADOW).recommendedLevel)
         assertEquals(10L, GameData.area(AreaId.FOREST).recommendedLevel)
         assertEquals(25L, GameData.area(AreaId.CAVE).recommendedLevel)
-        assertEquals(52L, GameData.area(AreaId.VOLCANO).recommendedLevel)
+        assertEquals(56L, GameData.area(AreaId.VOLCANO).recommendedLevel)
     }
 
     /** 推奨Lv は後のエリアほど大きい(単調増加)こと。UI の警告の前提。 */
