@@ -11,7 +11,7 @@ permissions:
   contents: read # 最小権限: コードを読むだけ
 jobs:
   check:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04 # latest ではなく版を固定する(latest は予告なく別バージョンに切り替わり、ビルドが突然壊れる/変わるのを防ぐ。更新は意図したタイミングで手動で行う)
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-java@v6
