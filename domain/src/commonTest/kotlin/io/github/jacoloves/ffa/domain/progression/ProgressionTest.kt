@@ -15,20 +15,52 @@ class ProgressionTest {
 
     // ---------- キャラ EXP ----------
 
-    /** 必要 EXP = ceil(10 × lv^1.5)。 */
+    /**
+     * 累計関数 C(lv) = ceil(4 × ((lv−0.5)^2.5 − 0.5^2.5)) から、必要 EXP = C(lv+1) − C(lv)。
+     * 従来の ceil(10 × lv^1.5)(Lv9: 270、Lv100: 10000 など)とほぼ同じ形になる。
+     */
     @Test
     fun キャラの必要EXP曲線() {
-        assertEquals(10L, Progression.charExpToNext(1))
-        assertEquals(29L, Progression.charExpToNext(2)) // 10 × 2.828... = 28.28 → 29(切り上げ)
-        assertEquals(80L, Progression.charExpToNext(4))
+        assertEquals(0L, Progression.charExpCumulative(1))
+        assertEquals(11L, Progression.charExpCumulative(2))
+        assertEquals(39L, Progression.charExpCumulative(3))
+        assertEquals(11L, Progression.charExpToNext(1))
+        assertEquals(28L, Progression.charExpToNext(2))
+        assertEquals(81L, Progression.charExpToNext(4))
         assertEquals(270L, Progression.charExpToNext(9))
         assertEquals(10_000L, Progression.charExpToNext(100))
+    }
+
+    /** 従来の曲線 ceil(10 × lv^1.5) と ±1% 以内(バランスがほとんど動かないことの確認。Lv1 は絶対差 1 まで許す)。 */
+    @Test
+    fun 曲線は従来とほぼ同じ形() {
+        for (lv in listOf(1L, 2L, 3L, 5L, 10L, 50L, 100L, 1_000L, 100_000L)) {
+            val old = kotlin.math.ceil(10.0 * lv * kotlin.math.sqrt(lv.toDouble()))
+            val diff = kotlin.math.abs(Progression.charExpToNext(lv) - old)
+            assertTrue(diff <= 1.0 || diff / old < 0.01, "lv=$lv new=${Progression.charExpToNext(lv)} old=$old")
+        }
+    }
+
+    /** 累計は Lv1 以上の到達可能な全範囲で狭義単調増加(逆引きの二分探索が成り立つ前提)。 */
+    @Test
+    fun 累計曲線は狭義単調増加() {
+        var prev = Progression.charExpCumulative(1)
+        for (lv in 2L..300_000L) {
+            val c = Progression.charExpCumulative(lv)
+            assertTrue(c > prev, "lv=$lv C=$c prev=$prev")
+            prev = c
+        }
+        // 巨大なレベルでも(Long に収まる範囲の)隣り合うレベルで単調
+        for (lv in listOf(1_000_000L, 5_000_000L, 10_000_000L, 14_000_000L)) {
+            assertTrue(Progression.charExpCumulative(lv + 1) > Progression.charExpCumulative(lv), "lv=$lv")
+        }
     }
 
     /** 巨大なレベルでも Long で飽和し、負数にならない。 */
     @Test
     fun キャラの必要EXPは飽和する() {
         assertEquals(Long.MAX_VALUE, Progression.charExpToNext(Long.MAX_VALUE))
+        assertEquals(Long.MAX_VALUE, Progression.charExpCumulative(Long.MAX_VALUE))
         assertTrue(Progression.charExpToNext(Long.MAX_VALUE / 2) > 0)
     }
 
@@ -49,16 +81,17 @@ class ProgressionTest {
     /** ちょうど必要 EXP に達したらレベルアップし、EXP は 0(境界値)。 */
     @Test
     fun ちょうどでレベルアップ() {
-        assertEquals(CharExpResult(2, 0, 1), Progression.gainCharExp(1, 0, 10))
+        assertEquals(CharExpResult(1, 10, 0), Progression.gainCharExp(1, 0, 10)) // 必要 11 の 1 手前
+        assertEquals(CharExpResult(2, 0, 1), Progression.gainCharExp(1, 0, 11))
     }
 
     /** 持ち越し EXP も含めて判定する。 */
     @Test
     fun 持ち越しEXPを含めて判定() {
-        assertEquals(CharExpResult(2, 3, 1), Progression.gainCharExp(1, 8, 5)) // 13 - 10 = 3
+        assertEquals(CharExpResult(2, 2, 1), Progression.gainCharExp(1, 8, 5)) // 13 - 11 = 2
     }
 
-    /** 1 回の獲得で複数レベル上がる(10 + 29 = 39 で Lv3、40 なら余り 1)。 */
+    /** 1 回の獲得で複数レベル上がる(11 + 28 = 39 で Lv3、40 なら余り 1)。 */
     @Test
     fun 一度に複数レベル上がる() {
         assertEquals(CharExpResult(3, 0, 2), Progression.gainCharExp(1, 0, 39))
@@ -83,36 +116,80 @@ class ProgressionTest {
         assertEquals(Long.MAX_VALUE, r2.exp) // 飽和
     }
 
-    /**
-     * 巨大な獲得でも(ループ回数の上限を超える規模でも)終了し、不変条件を満たす。
-     * 不変条件: 0 <= exp < 次のレベルの必要 EXP、levelsGained = 新Lv - 旧Lv。
-     * さらに、正確な 1 レベルずつの計算で求めた「到達レベル」と一致する(近似でも ±1 以内)。
-     */
-    @Test
-    fun 巨大な獲得でも終了し結果が妥当() {
-        val gained = 5_000_000_000_000L // 5 兆(約 16 万レベル分: 高速化の経路に入る規模)
-        val r = Progression.gainCharExp(1, 0, gained)
-        assertTrue(r.exp >= 0 && r.exp < Progression.charExpToNext(r.level), "exp=${r.exp} level=${r.level}")
-        assertEquals(r.level - 1, r.levelsGained)
-        // 正確な答え(1 レベルずつ)を、この規模ならテストの中で直接計算して比べる。
-        var lv = 1L
-        var rest = gained
-        while (rest >= Progression.charExpToNext(lv)) {
-            rest -= Progression.charExpToNext(lv)
+    /** 1 レベルずつ上げる基準実装(累計関数ではなく charExpToNext の積み上げ)。小さな獲得の照合に使う。 */
+    private fun stepByStep(level: Long, exp: Long, gained: Long): CharExpResult {
+        var lv = level
+        var cur = exp + gained
+        while (cur >= Progression.charExpToNext(lv)) {
+            cur -= Progression.charExpToNext(lv)
             lv++
         }
-        assertTrue(kotlin.math.abs(lv - r.level) <= 1, "正確=$lv 実際=${r.level}")
+        return CharExpResult(lv, cur, lv - level)
     }
 
-    /** Long の上限級の獲得でも、現実的な時間で終了して飽和せずレベルが上がる。 */
+    /** 小さな獲得は、1 レベルずつのループと完全に一致する(開始レベル・持ち越し EXP を変えて多数)。 */
+    @Test
+    fun 小さな獲得はステップ計算と一致() {
+        for (start in listOf(1L, 2L, 7L, 50L, 999L)) {
+            for (carry in listOf(0L, 1L, 5L)) {
+                for (gained in listOf(0L, 1L, 10L, 11L, 100L, 1_234L, 99_999L, 1_000_000L)) {
+                    assertEquals(
+                        stepByStep(start, carry, gained),
+                        Progression.gainCharExp(start, carry, gained),
+                        "start=$start carry=$carry gained=$gained",
+                    )
+                }
+            }
+        }
+    }
+
+    /**
+     * 5 兆の獲得は正確(近似ではない)。累計関数 C に対する基準:
+     * 到達レベル lv は C(lv) <= 総量 < C(lv+1) をちょうど満たす最大のレベルで、exp = 総量 − C(lv)。
+     * 基準側は二分探索ではなく線形探索で求め、実装と独立に突き合わせる。
+     */
+    @Test
+    fun 巨大な獲得でも正確() {
+        val gained = 5_000_000_000_000L // 5 兆(約 16 万レベル分)
+        val r = Progression.gainCharExp(1, 0, gained)
+        var lv = 1L
+        while (Progression.charExpCumulative(lv + 1) <= gained) lv++ // 線形探索の基準
+        assertEquals(lv, r.level)
+        assertEquals(gained - Progression.charExpCumulative(lv), r.exp)
+        assertEquals(lv - 1, r.levelsGained)
+        assertTrue(r.exp >= 0 && r.exp < Progression.charExpToNext(r.level))
+        // 途中から(Lv500、持ち越し 123)でも同様
+        val r2 = Progression.gainCharExp(500, 123, gained)
+        val total = Progression.charExpCumulative(500) + 123 + gained
+        var lv2 = 500L
+        while (Progression.charExpCumulative(lv2 + 1) <= total) lv2++
+        assertEquals(CharExpResult(lv2, total - Progression.charExpCumulative(lv2), lv2 - 500), r2)
+    }
+
+    /** 分割して獲得しても、まとめて獲得しても同じ結果になる(厳密な累計である証拠)。 */
+    @Test
+    fun 分割獲得とまとめ獲得が一致() {
+        val whole = Progression.gainCharExp(1, 0, 3_000_000_000L)
+        val a = Progression.gainCharExp(1, 0, 1_234_567_890L)
+        val b = Progression.gainCharExp(a.level, a.exp, 3_000_000_000L - 1_234_567_890L)
+        assertEquals(whole.level, b.level)
+        assertEquals(whole.exp, b.exp)
+        assertEquals(whole.levelsGained, a.levelsGained + b.levelsGained)
+    }
+
+    /** Long の上限級の獲得でもハングせず、不変条件(0 <= exp < 必要 EXP)を満たして飽和する。 */
     @Test
     fun 上限級の獲得でも終了する() {
         val r = Progression.gainCharExp(1, 0, Long.MAX_VALUE)
         assertTrue(r.level > 1_000_000L, "level=${r.level}")
         assertTrue(r.exp >= 0 && r.exp < Progression.charExpToNext(r.level))
+        assertEquals(r.level - 1, r.levelsGained)
         // 獲得が多いほどレベルは下がらない(単調)
         val smaller = Progression.gainCharExp(1, 0, Long.MAX_VALUE / 2)
         assertTrue(smaller.level <= r.level)
+        // 既にかなり高いレベルから上限を足しても終了する(累計が飽和する)
+        val high = Progression.gainCharExp(10_000_000, Long.MAX_VALUE - 5, Long.MAX_VALUE)
+        assertTrue(high.level >= 10_000_000 && high.exp >= 0)
     }
 
     // ---------- 職業 EXP ----------

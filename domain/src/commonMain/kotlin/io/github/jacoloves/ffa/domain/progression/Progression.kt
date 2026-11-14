@@ -14,7 +14,6 @@ import io.github.jacoloves.ffa.domain.Balance
 import io.github.jacoloves.ffa.domain.data.JobProgress
 import io.github.jacoloves.ffa.domain.num.SatMath
 import kotlin.math.ceil
-import kotlin.math.pow
 import kotlin.math.sqrt
 
 /** キャラ EXP 獲得の結果。[levelsGained] は今回上がったレベル数。 */
@@ -26,30 +25,80 @@ data class JobExpResult(val progress: JobProgress, val levelsGained: Int, val ne
 /** 成長(EXP とレベル)の計算。 */
 object Progression {
 
+    // ---------- キャラ EXP 曲線(累計関数 C で定義する) ----------
+    //
+    // 「レベル lv に到達するまでの累計 EXP」C(lv)(Lv1 から)を先に決め、
+    //   次のレベルまでの必要 EXP = C(lv+1) − C(lv)
+    // と定義する。こうすると「いくつ獲得したらレベルはいくつか」は C の逆引き(二分探索)で
+    // 巨大な獲得でも誤差なく(1 レベルずつ上げた結果と完全に一致して)求まる。
+    //
+    // C(lv) = ceil(4 × ((lv−0.5)^2.5 − 0.5^2.5))
+    //   これは「1 レベルの必要 EXP ≒ 10 × lv^1.5」(Balance.CHAR_EXP_BASE, CHAR_EXP_EXPONENT)の積分を、
+    //   中点則(lv−0.5)でそろえたもの。従来の曲線(ceil(10 × lv^1.5))とほぼ同じ形で、バランスはほとんど動かない。
+    //   k = BASE / (EXPONENT + 1) = 4。 y^2.5 は y×y×sqrt(y) で計算する
+    //   (y は半整数なので y×y は正確で、丸めは sqrt と掛け算の IEEE 演算だけ=どの環境でも同じ値になる)。
+
+    /** 累計曲線の係数 k = 10 / 2.5 = 4。 */
+    private val CUM_K = Balance.CHAR_EXP_BASE / (Balance.CHAR_EXP_EXPONENT + 1.0)
+
+    /** 定数項 k × 0.5^2.5。C(1) = 0 にそろえるために引く。 */
+    private val CUM_OFFSET = CUM_K * (0.5 * 0.5 * sqrt(0.5))
+
+    /** Long の上限(2^63)を Double で表した値。これ以上は Long に収まらないので飽和させる。 */
+    private const val TWO_POW_63 = 9.223372036854775807E18
+
+    /** 累計曲線の生の値(Double、丸め前)。lv >= 1。 */
+    private fun cumulativeRaw(level: Long): Double {
+        val y = level.toDouble() - 0.5
+        return CUM_K * (y * y * sqrt(y)) - CUM_OFFSET
+    }
+
     /**
-     * キャラが次のレベルへ上がるのに必要な EXP = `ceil(10 × lv^1.5)`(飽和)。
-     *
-     * lv^1.5 は `lv × sqrt(lv)` で求める(pow より整数の平方で正確になりやすい)。
+     * Lv1 からレベル [level] に到達するまでの累計 EXP(Long で飽和)。C(1) = 0。
+     * レベルが大きすぎて Long に収まらない場合は [Long.MAX_VALUE]。
+     */
+    fun charExpCumulative(level: Long): Long {
+        require(level >= 1) {
+            "キャラのレベルに $level が指定されました。レベルは 1 以上です。呼び出し元でレベルが 1 以上であることを確認してください。"
+        }
+        if (level == 1L) return 0L
+        val c = ceil(cumulativeRaw(level))
+        return if (c >= TWO_POW_63) Long.MAX_VALUE else c.toLong()
+    }
+
+    /**
+     * 累計 EXP が Long に収まる(飽和しない)最大のレベル。これ以上のレベルは「次のレベルへの必要 EXP」を
+     * Long.MAX_VALUE(事実上到達不能)として扱う。約 1,500 万レベルで、通常のプレイでは到達しない。
+     * 二分探索で求める(累計は単調増加)。
+     */
+    private val maxCumulativeLevel: Long by lazy {
+        var lo = 1L // 収まる
+        var hi = 1L shl 40 // 収まらない(十分大きい)
+        while (lo + 1 < hi) {
+            val mid = lo + (hi - lo) / 2
+            if (ceil(cumulativeRaw(mid)) < TWO_POW_63) lo = mid else hi = mid
+        }
+        lo
+    }
+
+    /**
+     * キャラが次のレベルへ上がるのに必要な EXP = C(lv+1) − C(lv)(約 `10 × (lv−0.5)^1.5`)。
+     * 累計が Long に収まらない巨大レベルでは [Long.MAX_VALUE](飽和)。
      */
     fun charExpToNext(level: Long): Long {
         require(level >= 1) {
             "キャラのレベルに $level が指定されました。レベルは 1 以上です。呼び出し元でレベルが 1 以上であることを確認してください。"
         }
-        val lv = level.toDouble()
-        val need = ceil(Balance.CHAR_EXP_BASE * lv * sqrt(lv)) // EXPONENT = 1.5 の式
-        return SatMath.mulRatio(1L, need) // 範囲外は Long の上限で止める
+        if (level >= maxCumulativeLevel) return Long.MAX_VALUE
+        return charExpCumulative(level + 1) - charExpCumulative(level)
     }
 
-    /** 1 レベルずつ正確に計算する回数の上限。これを超える巨大な獲得だけ、まとめて飛ばす近似に切り替える。 */
-    private const val EXACT_LOOP_LIMIT = 10_000
-
     /**
-     * キャラ EXP を獲得し、レベルアップを(複数回でも)すべて処理する。
+     * キャラ EXP を獲得し、レベルアップを(何レベルでも)正確に処理する。
      *
-     * 通常の獲得(数レベル〜数千レベル)は 1 レベルずつ正確に計算する。
-     * ただし 1 回の獲得が巨大(Long 上限級なら約 1,000 万レベル分)でループが [EXACT_LOOP_LIMIT] 回を超える場合は、
-     * 累計必要 EXP の積分近似([approxCumulative])を二分探索して一気にレベルを飛ばし、残りだけ正確に計算する。
-     * この経路でも不変条件(0 <= exp < 次の必要 EXP、レベルは飽和)は必ず守り、到達レベルの誤差は ±数レベル以内。
+     * 手順: 現在の累計 `C(level) + exp + gained`(Long で飽和)を求め、`C(lv) <= 累計` を満たす最大の lv を
+     * 二分探索し、余りを exp とする。1 レベルずつ上げた結果と常に完全に一致する(近似はない)。
+     * 不変条件 0 <= exp < 次の必要 EXP を満たす。累計が Long の上限を超える獲得は飽和する(上限以上は無視)。
      *
      * @param gained 獲得 EXP(0 以上)
      */
@@ -57,56 +106,21 @@ object Progression {
         require(gained >= 0) {
             "獲得 EXP に $gained が指定されました。獲得 EXP は 0 以上です。報酬の計算結果が負になっていないか確認してください。"
         }
-        var lv = level
-        var cur = SatMath.add(exp, gained)
-        var up = 0L
-        var loops = 0
-        while (lv < Long.MAX_VALUE) {
-            val need = charExpToNext(lv)
-            if (cur < need) break
-            if (++loops > EXACT_LOOP_LIMIT && need < Long.MAX_VALUE) {
-                // 巨大な獲得: 二分探索で「近似累計 <= cur」を満たす最大のレベル数 n をまとめて飛ばす。
-                val n = maxLevelsAffordable(lv, cur)
-                if (n > 0) {
-                    cur = (cur - approxCumulative(lv, n).toLong()).coerceAtLeast(0)
-                    lv += n
-                    up += n
-                    loops = 0
-                    continue
-                }
-            }
-            cur -= need
-            lv++
-            up++
+        val cap = maxCumulativeLevel
+        if (level >= cap) {
+            // 巨大レベル: 次のレベルへの必要 EXP は Long.MAX_VALUE。EXP が溜まりきったときだけ 1 つ上がる。
+            val cur = SatMath.add(exp, gained)
+            return if (cur == Long.MAX_VALUE && level < Long.MAX_VALUE) CharExpResult(level + 1, 0, 1) else CharExpResult(level, cur, 0)
         }
-        return CharExpResult(lv, cur, up)
-    }
-
-    /**
-     * レベル [from] から [n] レベル上がるのに必要な EXP の合計の近似。
-     * 各レベルの必要 EXP は 10 × k^1.5(切り上げで平均 +0.5)なので、中点則の積分
-     * `4 × ((from+n-0.5)^2.5 − (from-0.5)^2.5) + 0.5 × n` で近似する(相対誤差は 1e-9 級)。
-     */
-    private fun approxCumulative(from: Long, n: Long): Double {
-        val a = from.toDouble() - 0.5
-        val b = from.toDouble() + n.toDouble() - 0.5
-        val k = Balance.CHAR_EXP_BASE / (Balance.CHAR_EXP_EXPONENT + 1.0) // 10 / 2.5 = 4
-        return k * (b.pow(Balance.CHAR_EXP_EXPONENT + 1.0) - a.pow(Balance.CHAR_EXP_EXPONENT + 1.0)) + 0.5 * n
-    }
-
-    /** [budget] の EXP で、レベル [from] から何レベル上がれるかの近似上限(二分探索。近似累計は n に対して単調増加)。 */
-    private fun maxLevelsAffordable(from: Long, budget: Long): Long {
-        val room = Long.MAX_VALUE - from // レベルが Long を超えないための上限
-        var lo = 0L
-        var hi = 1L
-        // 上限 hi を倍々で探す(近似累計が予算を超えるか、room に達するまで)
-        while (hi < room && approxCumulative(from, hi) <= budget.toDouble()) hi = if (hi > room / 2) room else hi * 2
-        // 不変条件: lo は払える、hi は払えない(または room)
+        val total = SatMath.add(SatMath.add(charExpCumulative(level), exp), gained)
+        // 不変条件: C(lo) <= total、hi は「C(hi) > total」または cap の次(範囲外)
+        var lo = level
+        var hi = cap + 1
         while (lo + 1 < hi) {
             val mid = lo + (hi - lo) / 2
-            if (approxCumulative(from, mid) <= budget.toDouble()) lo = mid else hi = mid
+            if (charExpCumulative(mid) <= total) lo = mid else hi = mid
         }
-        return lo
+        return CharExpResult(level = lo, exp = total - charExpCumulative(lo), levelsGained = lo - level)
     }
 
     /** 職業が次のレベルへ上がるのに必要な EXP = `2 + jobLv / 5`(整数除算)。 */
