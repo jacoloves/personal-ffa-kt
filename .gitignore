@@ -1,0 +1,24 @@
+# Gradle のキャッシュとビルド成果物
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Kotlin 2.x のローカルキャッシュ
+.kotlin/
+
+# IDE（IntelliJ IDEA / Android Studio / VS Code）
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+.vscode/
+
+# ローカル環境ごとの設定（SDK パスなど）
+local.properties
+
+# OS が生成するファイル
+.DS_Store
+Thumbs.db
+
+# 注意: kotlin-js-store/yarn.lock は依存バージョンを固定するためコミットする
