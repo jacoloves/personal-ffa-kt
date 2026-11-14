@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<!--
+  index.html
+  役割: ブラウザが最初に読み込むページ。Compose HTML の描画先(#root)と、
+        webpack が生成する app.js の読み込みだけを行う最小の HTML。
+-->
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <!-- スマートフォンでも幅に合わせて表示するための設定 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Personal FFA</title>
+    <style>
+        /* 余白を消し、背景をダークにして読み込み中のチラつきを防ぐ */
+        body { margin: 0; background: #1e1e2e; }
+    </style>
+</head>
+<body>
+    <!-- Compose HTML の描画先 -->
+    <div id="root"></div>
+    <!-- ui/build.gradle.kts の outputFileName と一致させる -->
+    <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,28 @@
+# =============================================================================
+# gradle/libs.versions.toml (Version Catalog)
+# 役割: ビルドで使うバージョン・プラグインを 1 ファイルに集約する。
+# なぜ Version Catalog か:
+#   - 複数モジュールで同じバージョンを使い回せ、更新が 1 箇所で済む(保守性)。
+#   - build.gradle.kts から libs.plugins.xxx / libs.xxx で型安全に参照できる。
+# ここのバージョンは完全固定(ピン留め)。再現性を優先し、更新は意図して行う。
+# =============================================================================
+
+[versions]
+kotlin = "2.4.21"          # Kotlin 本体(Multiplatform プラグイン・kotlin-test もこの版)
+compose = "1.12.2"         # Compose Multiplatform
+
+[libraries]
+# kotlin-test は Kotlin 本体と同じバージョンに揃える(version.ref = "kotlin")。
+kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
+
+# Compose Multiplatform のライブラリ。バージョンは compose プラグインと同じ値に揃える。
+# 旧来の compose.runtime / compose.html.core アクセサは非推奨のため、座標で直接指定する。
+compose-runtime = { module = "org.jetbrains.compose.runtime:runtime", version.ref = "compose" }
+compose-html-core = { module = "org.jetbrains.compose.html:html-core", version.ref = "compose" }
+
+[plugins]
+kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
+# Kotlin 2.0 以降、Compose のコンパイラは Kotlin 本体に同梱され、
+# このプラグイン(org.jetbrains.kotlin.plugin.compose)経由で有効化する。
+kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+compose = { id = "org.jetbrains.compose", version.ref = "compose" }
