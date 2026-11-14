@@ -35,8 +35,8 @@ class BalanceTest {
         assertEquals(1.15, Balance.DLV_REWARD_GROWTH)
         assertEquals(10, Balance.AREA_UNLOCK_DLV)
         // エリア倍率表(index = tier - 1)。Phase 9 のシミュレーションで決めた値
-        assertEquals(listOf(1.0, 4.0, 18.0, 65.0), Balance.AREA_STAT_SCALE)
-        assertEquals(listOf(1.0, 1.5, 3.5, 20.0), Balance.AREA_REWARD_SCALE)
+        assertEquals(listOf(1.0, 4.0, 21.0, 75.0), Balance.AREA_STAT_SCALE)
+        assertEquals(listOf(1.0, 1.5, 3.5, 27.0), Balance.AREA_REWARD_SCALE)
         assertEquals(listOf(1.0, 4.5, 14.0, 80.0), Balance.AREA_GEAR_SCALE)
         assertEquals(listOf(1.0, 5.0, 22.0, 200.0), Balance.AREA_PRICE_SCALE)
         assertEquals(0.10, Balance.ENHANCE_RATIO_PER_LEVEL)

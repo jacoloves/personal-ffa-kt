@@ -166,7 +166,7 @@ object GameData {
             unlock = AreaUnlock(AreaId.FOREST, Balance.AREA_UNLOCK_DLV),
         ),
         AreaDef(
-            AreaId.VOLCANO, "灼熱の火山", recommendedLevel = 52, tier = 4,
+            AreaId.VOLCANO, "灼熱の火山", recommendedLevel = 56, tier = 4,
             enemies = listOf(
                 EnemyId.FIRE_LIZARD, EnemyId.LAVA_SLIME, EnemyId.FLAME_BEAST,
                 EnemyId.FIRE_ELEMENTAL, EnemyId.YOUNG_DRAGON,
