@@ -130,9 +130,9 @@ class GameEngineTest {
 
     @Test
     fun キャラのレベルアップイベント() {
-        // charLevel 50 の必要 EXP の直前まで溜めて、スライムの EXP 5 でちょうど上がる
+        // charLevel 50 の必要 EXP の直前まで溜めて、スライムの EXP(DLv1)でちょうど上がる
         val need = io.github.jacoloves.ffa.domain.progression.Progression.charExpToNext(50)
-        val r = ok(run(strong.copy(charExp = need - 5), Command.Fight))
+        val r = ok(run(strong.copy(charExp = need - GameData.enemy(EnemyId.SLIME).exp), Command.Fight))
         assertEquals(GameEvent.CharLevelUp(from = 50, to = 51), r.events.one<GameEvent.CharLevelUp>())
         assertEquals(51L, r.state.charLevel)
         assertEquals(0L, r.state.charExp)

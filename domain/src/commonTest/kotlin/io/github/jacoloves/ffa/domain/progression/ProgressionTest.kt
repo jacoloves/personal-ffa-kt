@@ -83,6 +83,38 @@ class ProgressionTest {
         assertEquals(Long.MAX_VALUE, r2.exp) // 飽和
     }
 
+    /**
+     * 巨大な獲得でも(ループ回数の上限を超える規模でも)終了し、不変条件を満たす。
+     * 不変条件: 0 <= exp < 次のレベルの必要 EXP、levelsGained = 新Lv - 旧Lv。
+     * さらに、正確な 1 レベルずつの計算で求めた「到達レベル」と一致する(近似でも ±1 以内)。
+     */
+    @Test
+    fun 巨大な獲得でも終了し結果が妥当() {
+        val gained = 5_000_000_000_000L // 5 兆(約 16 万レベル分: 高速化の経路に入る規模)
+        val r = Progression.gainCharExp(1, 0, gained)
+        assertTrue(r.exp >= 0 && r.exp < Progression.charExpToNext(r.level), "exp=${r.exp} level=${r.level}")
+        assertEquals(r.level - 1, r.levelsGained)
+        // 正確な答え(1 レベルずつ)を、この規模ならテストの中で直接計算して比べる。
+        var lv = 1L
+        var rest = gained
+        while (rest >= Progression.charExpToNext(lv)) {
+            rest -= Progression.charExpToNext(lv)
+            lv++
+        }
+        assertTrue(kotlin.math.abs(lv - r.level) <= 1, "正確=$lv 実際=${r.level}")
+    }
+
+    /** Long の上限級の獲得でも、現実的な時間で終了して飽和せずレベルが上がる。 */
+    @Test
+    fun 上限級の獲得でも終了する() {
+        val r = Progression.gainCharExp(1, 0, Long.MAX_VALUE)
+        assertTrue(r.level > 1_000_000L, "level=${r.level}")
+        assertTrue(r.exp >= 0 && r.exp < Progression.charExpToNext(r.level))
+        // 獲得が多いほどレベルは下がらない(単調)
+        val smaller = Progression.gainCharExp(1, 0, Long.MAX_VALUE / 2)
+        assertTrue(smaller.level <= r.level)
+    }
+
     // ---------- 職業 EXP ----------
 
     /** 必要 EXP = 2 + jobLv / 5(整数除算)。 */
