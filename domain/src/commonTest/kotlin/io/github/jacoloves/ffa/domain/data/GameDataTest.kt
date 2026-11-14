@@ -89,7 +89,7 @@ class GameDataTest {
         }
     }
 
-    /** 後のエリアほど敵が強い(平均 HP が約 10 倍ずつ増える: 5 倍以上を要求)。 */
+    /** 後のエリアほど敵が強い(平均 HP が 3 倍以上ずつ増える。倍率表 Balance.AREA_STAT_SCALE が反映されている)。 */
     @Test
     fun エリアが進むほど敵は強くなる() {
         val order = listOf(AreaId.MEADOW, AreaId.FOREST, AreaId.CAVE, AreaId.VOLCANO)
@@ -98,27 +98,27 @@ class GameDataTest {
             enemies.sumOf { it.stats.hp } / enemies.size
         }
         for (i in 1 until avgHp.size) {
-            assertTrue(avgHp[i] >= avgHp[i - 1] * 5, "平均HPが十分に増えていない: $avgHp")
+            assertTrue(avgHp[i] >= avgHp[i - 1] * 3, "平均HPが十分に増えていない: $avgHp")
         }
     }
 
-    /** 草原の敵は設計書の範囲(HP 20〜60、攻撃 5〜12)に収まっていること。 */
+    /** 草原の敵は、最初の 1 戦で Lv1 の戦士(HP30・攻撃11)が勝てる範囲(HP 15〜60、攻撃 4〜12)に収まっていること。 */
     @Test
     fun 草原の敵は設計書の範囲() {
         for (id in GameData.area(AreaId.MEADOW).enemies) {
             val s = GameData.enemy(id).stats
-            assertTrue(s.hp in 20..60, "$id hp=${s.hp}")
-            assertTrue(s.atk in 5..12, "$id atk=${s.atk}")
+            assertTrue(s.hp in 15..60, "$id hp=${s.hp}")
+            assertTrue(s.atk in 4..12, "$id atk=${s.atk}")
         }
     }
 
-    /** 推奨キャラLv が仕様どおり(草原1・森30・洞窟100・火山300)であること。 */
+    /** 推奨キャラLv がシミュレーション(BalanceSimulationTest)で測った実態どおり(草原1・森10・洞窟25・火山52)であること。 */
     @Test
     fun 推奨レベルが仕様どおり() {
         assertEquals(1L, GameData.area(AreaId.MEADOW).recommendedLevel)
-        assertEquals(30L, GameData.area(AreaId.FOREST).recommendedLevel)
-        assertEquals(100L, GameData.area(AreaId.CAVE).recommendedLevel)
-        assertEquals(300L, GameData.area(AreaId.VOLCANO).recommendedLevel)
+        assertEquals(10L, GameData.area(AreaId.FOREST).recommendedLevel)
+        assertEquals(25L, GameData.area(AreaId.CAVE).recommendedLevel)
+        assertEquals(52L, GameData.area(AreaId.VOLCANO).recommendedLevel)
     }
 
     /** 推奨Lv は後のエリアほど大きい(単調増加)こと。UI の警告の前提。 */
@@ -127,5 +127,31 @@ class GameDataTest {
         val levels = AreaId.entries.map { GameData.area(it).recommendedLevel }
         assertEquals(levels.sorted(), levels)
         assertEquals(levels.size, levels.toSet().size)
+    }
+
+    /** 敵のステータス・報酬、装備の性能・価格に、エリア(tier)の倍率表がかかっていること。 */
+    @Test
+    fun エリア倍率が敵と装備に反映されている() {
+        // 森(tier 2): ウッドウルフの基礎値は HP 30・攻撃 9・EXP 8・ゴールド 5
+        val wolf = GameData.enemy(EnemyId.WOOD_WOLF)
+        assertEquals((30 * Balance.AREA_STAT_SCALE[1]).toLong(), wolf.stats.hp)
+        assertEquals((9 * Balance.AREA_STAT_SCALE[1]).toLong(), wolf.stats.atk)
+        assertEquals((8 * Balance.AREA_REWARD_SCALE[1]).toLong(), wolf.exp)
+        assertEquals((5 * Balance.AREA_REWARD_SCALE[1]).toLong(), wolf.gold)
+        // 鉄の剣(基礎: 攻撃 3・価格 50)
+        val iron = GameData.item(ItemId.IRON_SWORD)
+        assertEquals((3 * Balance.AREA_GEAR_SCALE[1]).toLong(), iron.stats.atk)
+        assertEquals((50 * Balance.AREA_PRICE_SCALE[1]).toLong(), iron.price)
+        // 草原は倍率 1.0 なので基礎値のまま
+        assertEquals(3L, GameData.item(ItemId.WOODEN_SWORD).stats.atk)
+        assertEquals(50L, GameData.item(ItemId.WOODEN_SWORD).price)
+    }
+
+    /** ドロップ率は 5〜12% の範囲(ドロップ限定品を平均 1 個以上手に入れられる水準)であること。 */
+    @Test
+    fun ドロップ率の範囲() {
+        for (e in GameData.enemies.values) {
+            for (d in e.drops) assertTrue(d.chance in 0.05..0.12, "${e.name} の ${d.item} のドロップ率 ${d.chance} が 5〜12% の範囲外")
+        }
     }
 }

@@ -17,7 +17,13 @@ kotlin {
         //   browser() のテストは Karma + ヘッドレスブラウザ(Chrome 等)が必要で、
         //   環境依存・低速になりがち。domain は DOM を使わない純ロジックなので、
         //   Node.js 上でテストすれば十分かつ簡単(Kotlin が Node を自動ダウンロードする)。
-        nodejs()
+        nodejs {
+            testTask {
+                // mocha の既定タイムアウトは 2 秒。バランスシミュレーション(数千戦 × 複数 seed)は
+                // 数秒かかるため、テストごとの上限を 120 秒に延ばす(無限ループの検出にはなお十分短い)。
+                useMocha { timeout = "120s" }
+            }
+        }
     }
 
     sourceSets {

@@ -31,9 +31,14 @@ class BalanceTest {
         assertEquals(1.03, Balance.LEVEL_FACTOR_GROWTH)
         assertEquals(30, Balance.JOB_MASTER_LEVEL)
         assertEquals(2, Balance.JOB_EXP_BASE)
-        assertEquals(1.15, Balance.DLV_ENEMY_GROWTH)
-        assertEquals(1.12, Balance.DLV_REWARD_GROWTH)
+        assertEquals(1.25, Balance.DLV_ENEMY_GROWTH)
+        assertEquals(1.15, Balance.DLV_REWARD_GROWTH)
         assertEquals(10, Balance.AREA_UNLOCK_DLV)
+        // エリア倍率表(index = tier - 1)。Phase 9 のシミュレーションで決めた値
+        assertEquals(listOf(1.0, 4.0, 18.0, 65.0), Balance.AREA_STAT_SCALE)
+        assertEquals(listOf(1.0, 1.5, 3.5, 20.0), Balance.AREA_REWARD_SCALE)
+        assertEquals(listOf(1.0, 4.5, 14.0, 80.0), Balance.AREA_GEAR_SCALE)
+        assertEquals(listOf(1.0, 5.0, 22.0, 200.0), Balance.AREA_PRICE_SCALE)
         assertEquals(0.10, Balance.ENHANCE_RATIO_PER_LEVEL)
         assertEquals(0.5, Balance.DROP_LUK_BONUS_MAX)
         assertEquals(5, Balance.DEFAULT_COOLDOWN_SEC)
@@ -54,5 +59,11 @@ class BalanceTest {
         assertTrue(Balance.DEFAULT_COOLDOWN_SEC <= Balance.MAX_COOLDOWN_SEC)
         assertTrue(Balance.DLV_REWARD_GROWTH <= Balance.DLV_ENEMY_GROWTH)
         assertTrue(Balance.MAX_ROUNDS > 0)
+        // エリア倍率表: tier(1〜4)の数だけあり、草原は 1.0、後のエリアほど大きい(単調増加)
+        for (table in listOf(Balance.AREA_STAT_SCALE, Balance.AREA_REWARD_SCALE, Balance.AREA_GEAR_SCALE, Balance.AREA_PRICE_SCALE)) {
+            assertEquals(4, table.size, "倍率表は tier の数(4)だけ必要: $table")
+            assertEquals(1.0, table.first(), "草原(tier 1)の倍率は 1.0 のはず: $table")
+            assertEquals(table.sorted(), table, "後のエリアほど倍率が大きいはず: $table")
+        }
     }
 }

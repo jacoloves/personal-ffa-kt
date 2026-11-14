@@ -17,8 +17,10 @@ import kotlin.test.assertTrue
 
 class InventoryTest {
 
-    private val sword = GameData.item(ItemId.WOODEN_SWORD) // atk 3
-    private val iron = GameData.item(ItemId.IRON_SWORD)    // atk 30
+    private val sword = GameData.item(ItemId.WOODEN_SWORD) // atk 3(草原の装備は倍率 1.0 なので固定)
+    // 強化の計算式を切り捨ても含めて確かめやすいよう、atk を 30 に固定した鉄の剣で検証する
+    // (GameData の鉄の剣はエリア倍率がかかるため、数値の調整で値が変わる)。
+    private val iron = GameData.item(ItemId.IRON_SWORD).copy(stats = Stats(0, 30, 0, 0, 0))
 
     // ---------- 強化値 ----------
 

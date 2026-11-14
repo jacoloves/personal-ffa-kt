@@ -35,19 +35,19 @@ class EnemyFactoryTest {
         assertEquals(EnemyReward(exp = 100, gold = 50), EnemyFactory.reward(def, 1))
     }
 
-    /** DLv が上がるとステータスが 1.15^(dlv-1) 倍(切り捨て)になる。 */
+    /** DLv が上がるとステータスが 1.25^(dlv-1) 倍(切り捨て)になる。 */
     @Test
     fun dlvでステータスが指数的に増える() {
         val ratio = SatMath.pow(Balance.DLV_ENEMY_GROWTH, 4) // dlv=5
         val c = EnemyFactory.create(def, 5)
         assertEquals(def.stats * ratio, c.stats)
-        // おおよその範囲も確認(1.15^4 ≒ 1.749)
-        assertTrue(c.stats.hp in 698..700, "hp=${c.stats.hp}")
+        // おおよその範囲も確認(1.25^4 ≒ 2.441。400 × 2.441 = 976.56)
+        assertTrue(c.stats.hp in 975..977, "hp=${c.stats.hp}")
         // 全項目が単調に増えている
         assertTrue(c.stats.atk > def.stats.atk && c.stats.def > def.stats.def)
     }
 
-    /** 報酬は 1.12^(dlv-1) 倍で、敵ステータスより緩やかに増える。 */
+    /** 報酬は 1.15^(dlv-1) 倍で、敵ステータスより緩やかに増える。 */
     @Test
     fun dlvで報酬が緩やかに増える() {
         val reward = EnemyFactory.reward(def, 5)
