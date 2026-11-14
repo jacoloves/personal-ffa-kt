@@ -1,0 +1,50 @@
+# =============================================================================
+# deploy.yml
+# 役割: main への push(= PR のマージ)で、ゲームをビルドして GitHub Pages に公開する。
+#       公開先: https://jacoloves.github.io/personal-ffa-kt/
+#
+# 仕組み:
+#   1. build ジョブ  : :ui:jsBrowserDistribution で index.html + app.js を生成し、Pages 用の成果物としてアップロードする。
+#   2. deploy ジョブ : アップロードされた成果物を github-pages 環境へデプロイする。
+#
+# 前提: リポジトリの Pages 設定が「GitHub Actions」(build_type=workflow)になっていること。
+# 補足: index.html は <script src="app.js"> と相対パスで読むため、サブパス(/personal-ffa-kt/)配下でも動く。
+# =============================================================================
+name: Deploy to GitHub Pages
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: # 手動でも再デプロイできるようにする
+permissions:
+  contents: read # 最小権限: コードを読むだけ(デプロイ用の権限は deploy ジョブにだけ付ける)
+# 同時に複数のデプロイが走らないよう直列化する。実行中のデプロイは途中で止めない(公開が中途半端になるのを防ぐ)。
+concurrency:
+  group: pages
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: gradle/actions/setup-gradle@v6
+      - run: ./gradlew :ui:jsBrowserDistribution --no-daemon
+      - uses: actions/configure-pages@v6
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: ui/build/dist/js/productionExecutable # index.html と app.js が入っているディレクトリ
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write # Pages へのデプロイに必要
+      id-token: write # デプロイ元がこのワークフローであることの証明(OIDC)に必要
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5
