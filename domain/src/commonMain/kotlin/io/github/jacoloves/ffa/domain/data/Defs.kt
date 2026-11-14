@@ -10,6 +10,7 @@ import io.github.jacoloves.ffa.domain.Balance
 import io.github.jacoloves.ffa.domain.Stats
 import io.github.jacoloves.ffa.domain.num.SatMath
 import kotlin.math.roundToLong
+import kotlinx.serialization.Serializable
 
 /**
  * 敵 1 種類の定義。DLv による強化前の「基礎値」を持つ。
@@ -82,6 +83,7 @@ data class JobDef(
  * @property exp 現在の職業 EXP(次のレベルまでの途中経過)
  * @property mastered マスター済みか(一度 true になったら戻らない)
  */
+@Serializable
 data class JobProgress(val level: Int = 1, val exp: Long = 0, val mastered: Boolean = false)
 
 /**
