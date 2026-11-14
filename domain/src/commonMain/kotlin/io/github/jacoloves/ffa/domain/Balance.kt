@@ -23,7 +23,7 @@ object Balance {
     const val CRIT_MULTIPLIER = 2.0
     /** 会心率 = 基本値 + 運ボーナス × 運の比率、ただし上限あり。 */
     const val CRIT_BASE = 0.05
-    const val CRIT_LUK_BONUS = 0.15
+    const val CRIT_LUK_BONUS = 0.20
     const val CRIT_MAX = 0.25
     /** 回避率 = 係数 × 防御側spd / 攻撃側spd、ただし上限あり。 */
     const val EVADE_FACTOR = 0.05
@@ -36,8 +36,8 @@ object Balance {
     /** キャラの必要 EXP = ceil(BASE × lv^EXPONENT)。 */
     const val CHAR_EXP_BASE = 10.0
     const val CHAR_EXP_EXPONENT = 1.5
-    /** ステータス倍率 = lv × 1.01^(lv-1)。 */
-    const val LEVEL_FACTOR_GROWTH = 1.01
+    /** レベルによるステータス倍率 = 1.03^(lv-1)(純粋な指数。lv を直接かける項は無い)。 */
+    const val LEVEL_FACTOR_GROWTH = 1.03
     /** 職業をマスターするのに必要な職業Lv。 */
     const val JOB_MASTER_LEVEL = 30
     /** 職業の必要 EXP = 2 + jobLv / 5。 */

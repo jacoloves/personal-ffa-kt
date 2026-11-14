@@ -45,6 +45,15 @@ data class Stats(
         luk = SatMath.mulRatio(luk, ratio),
     )
 
+    /** 全項目に整数を飽和乗算する(成長値 × レベルのような計算用)。 */
+    operator fun times(n: Long): Stats = Stats(
+        hp = SatMath.mul(hp, n),
+        atk = SatMath.mul(atk, n),
+        def = SatMath.mul(def, n),
+        spd = SatMath.mul(spd, n),
+        luk = SatMath.mul(luk, n),
+    )
+
     /** 項目ごとに別々の倍率をかける(マスターボーナスなど)。 */
     operator fun times(other: StatRatios): Stats = Stats(
         hp = SatMath.mulRatio(hp, other.hp),
@@ -83,5 +92,8 @@ data class StatRatios(
     companion object {
         /** 全項目 0.0。合算の単位元。 */
         val ZERO = StatRatios()
+
+        /** 全項目 1.0(等倍)。「1 + ボーナス」を作る土台。 */
+        val ONE = StatRatios(1.0, 1.0, 1.0, 1.0, 1.0)
     }
 }

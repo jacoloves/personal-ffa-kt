@@ -12,6 +12,7 @@
 package io.github.jacoloves.ffa.domain.data
 
 import io.github.jacoloves.ffa.domain.Balance
+import io.github.jacoloves.ffa.domain.StatRatios
 import io.github.jacoloves.ffa.domain.Stats
 
 /** エリア・敵の定義データ。 */
@@ -95,5 +96,45 @@ object GameData {
     fun enemy(id: EnemyId): EnemyDef = checkNotNull(enemies[id]) {
         "敵 $id の定義が GameData.enemies にありません。EnemyId に値を追加したのに GameData への登録を忘れている可能性があります。" +
             "GameData.enemies に enemy(...) を追加してください。"
+    }
+
+    /** すべての職業の定義(id → 定義)。数値は設計書 Phase 4 の表のとおり。 */
+    val jobs: Map<JobId, JobDef> = listOf(
+        JobDef(
+            JobId.WARRIOR, "戦士", 1,
+            base = Stats(30, 8, 4, 5, 3), growth = Stats(6, 3, 1, 1, 1),
+            masterBonus = StatRatios(atk = 0.05), requires = emptySet(),
+        ),
+        JobDef(
+            JobId.KNIGHT, "騎士", 1,
+            base = Stats(40, 5, 7, 3, 3), growth = Stats(9, 1, 3, 1, 1),
+            masterBonus = StatRatios(def = 0.05), requires = emptySet(),
+        ),
+        JobDef(
+            JobId.THIEF, "盗賊", 1,
+            base = Stats(25, 6, 3, 8, 7), growth = Stats(5, 2, 1, 3, 2),
+            masterBonus = StatRatios(spd = 0.05), requires = emptySet(),
+        ),
+        JobDef(
+            JobId.PRIEST, "僧侶", 1,
+            base = Stats(35, 5, 5, 4, 5), growth = Stats(8, 2, 2, 1, 2),
+            masterBonus = StatRatios(hp = 0.05), requires = emptySet(),
+        ),
+        JobDef(
+            JobId.SWORD_MASTER, "剣聖", 2,
+            base = Stats(35, 10, 4, 8, 5), growth = Stats(8, 4, 1, 3, 2),
+            masterBonus = StatRatios(atk = 0.10, spd = 0.05), requires = setOf(JobId.WARRIOR, JobId.THIEF),
+        ),
+        JobDef(
+            JobId.PALADIN, "聖騎士", 2,
+            base = Stats(50, 7, 8, 4, 4), growth = Stats(11, 2, 3, 1, 1),
+            masterBonus = StatRatios(hp = 0.10, def = 0.05), requires = setOf(JobId.KNIGHT, JobId.PRIEST),
+        ),
+    ).associateBy { it.id }
+
+    /** 職業定義を返す。無ければ(= データ入力ミス)原因と対処つきで失敗する。 */
+    fun job(id: JobId): JobDef = checkNotNull(jobs[id]) {
+        "職業 $id の定義が GameData.jobs にありません。JobId に値を追加したのに GameData への登録を忘れている可能性があります。" +
+            "GameData.jobs に JobDef を追加してください。"
     }
 }

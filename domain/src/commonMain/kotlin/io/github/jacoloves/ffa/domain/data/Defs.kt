@@ -5,6 +5,7 @@
 // =============================================================================
 package io.github.jacoloves.ffa.domain.data
 
+import io.github.jacoloves.ffa.domain.StatRatios
 import io.github.jacoloves.ffa.domain.Stats
 
 /**
@@ -51,3 +52,31 @@ data class AreaDef(
 
 /** エリアの解放条件「[area] で DLv [dlv] を(クリアして)到達すること」。 */
 data class AreaUnlock(val area: AreaId, val dlv: Int)
+
+/**
+ * 職業の定義。
+ *
+ * @property tier 1 = 最初から就ける / 2 = 上位職
+ * @property base Lv1 のときの基礎ステータス
+ * @property growth レベルが 1 上がるごとに加わる成長値
+ * @property masterBonus マスター時に永続で得られるステータス割合(複数職の分が合算される)
+ * @property requires 解放に必要な、マスター済みであるべき職業(Tier1 は空)
+ */
+data class JobDef(
+    val id: JobId,
+    val name: String,
+    val tier: Int,
+    val base: Stats,
+    val growth: Stats,
+    val masterBonus: StatRatios,
+    val requires: Set<JobId>,
+)
+
+/**
+ * 職業ごとの進行状況(セーブ対象)。
+ *
+ * @property level 職業Lv(マスター後も上がり続ける)
+ * @property exp 現在の職業 EXP(次のレベルまでの途中経過)
+ * @property mastered マスター済みか(一度 true になったら戻らない)
+ */
+data class JobProgress(val level: Int = 1, val exp: Long = 0, val mastered: Boolean = false)

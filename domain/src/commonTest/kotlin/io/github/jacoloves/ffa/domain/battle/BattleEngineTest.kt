@@ -288,13 +288,13 @@ class BattleEngineTest {
 
     @Test
     fun 会心率の式と上限() {
-        // 運が両者 0 → 基本値のみ(0.05 + 0.15 × 0/1)
+        // 運が両者 0 → 基本値のみ(0.05 + 0.20 × 0/1)
         assertEquals(Balance.CRIT_BASE, BattleEngine.critRate(ownLuk = 0, opponentLuk = 0), 1e-9)
-        // 運 10 vs 10 → 0.05 + 0.15 × 10/21
-        assertEquals(0.05 + 0.15 * 10.0 / 21.0, BattleEngine.critRate(10, 10), 1e-9)
-        // 相手の運が 0 で自分が非常に高い → 0.20 に漸近(上限 0.25 には届かない)
+        // 運 10 vs 10 → 0.05 + 0.20 × 10/21
+        assertEquals(0.05 + 0.20 * 10.0 / 21.0, BattleEngine.critRate(10, 10), 1e-9)
+        // 相手の運が 0 で自分が非常に高い → 0.25 に漸近(上限 0.25 にほぼ到達する)
         assertTrue(BattleEngine.critRate(1_000_000_000, 0) <= Balance.CRIT_MAX)
-        assertTrue(BattleEngine.critRate(1_000_000_000, 0) > 0.19)
+        assertTrue(BattleEngine.critRate(1_000_000_000, 0) > 0.24)
     }
 
     @Test

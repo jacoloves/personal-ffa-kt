@@ -58,12 +58,12 @@ object Balance {
     const val DAMAGE_VARIANCE_MIN = 0.9; const val DAMAGE_VARIANCE_MAX = 1.1
     const val DEF_FACTOR = 0.5
     const val CRIT_MULTIPLIER = 2.0
-    const val CRIT_BASE = 0.05; const val CRIT_LUK_BONUS = 0.15; const val CRIT_MAX = 0.25
+    const val CRIT_BASE = 0.05; const val CRIT_LUK_BONUS = 0.20; const val CRIT_MAX = 0.25
     const val EVADE_FACTOR = 0.05; const val EVADE_MAX = 0.30
     const val DOUBLE_ATTACK_FACTOR = 0.25; const val DOUBLE_ATTACK_MAX = 0.5
     // 成長
     const val CHAR_EXP_BASE = 10.0; const val CHAR_EXP_EXPONENT = 1.5
-    const val LEVEL_FACTOR_GROWTH = 1.01     // ステータス倍率 = lv × 1.01^(lv-1)
+    const val LEVEL_FACTOR_GROWTH = 1.03     // ステータス倍率 = 1.03^(lv-1)(純粋な指数)
     const val JOB_MASTER_LEVEL = 30
     const val JOB_EXP_BASE = 2               // 職業の必要EXP = 2 + jobLv / 5
     // ダンジョンLv
@@ -147,7 +147,7 @@ data class JobProgress(val level: Int = 1, val exp: Long = 0, val mastered: Bool
 - **職業Lv**: 必要EXP = `JOB_EXP_BASE + jobLv / 5`。勝利ごとに職業EXPを `エリアの tier` だけ獲得する（DLv の影響なし）
   - `JOB_MASTER_LEVEL` に到達すると `mastered = true` になる（1回だけ）。その後も職業Lvは上がる
 - **最終ステータス**（`StatCalculator`）:
-  `((job.base + job.growth × (lv−1)) × lv × 1.01^(lv−1)) × (1 + マスターボーナスの合計) + 装備の合計`
+  `((job.base + job.growth × (lv−1)) × 1.03^(lv−1)) × (1 + マスターボーナスの合計) + 装備の合計`
   - マスターボーナスの合計 = マスター済みの全職業の `masterBonus` を足したもの
 - **転職**: 解放条件は、`requires` の職業がすべてマスター済みであること。Tier1 は最初から解放されている
   - 解放されていなければ `GameError.JobLocked(job, missing)`、同じ職業なら `GameError.AlreadyCurrentJob`
