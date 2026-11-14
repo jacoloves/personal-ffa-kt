@@ -23,3 +23,6 @@ enum class EnemyId {
     // 火山
     FIRE_LIZARD, LAVA_SLIME, FLAME_BEAST, FIRE_ELEMENTAL, YOUNG_DRAGON,
 }
+
+/** 職業の識別子。Tier1 の 4 職と、それをマスターして解放される Tier2 の 2 職。 */
+enum class JobId { WARRIOR, KNIGHT, THIEF, PRIEST, SWORD_MASTER, PALADIN }
